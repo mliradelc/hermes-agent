@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from hermes_cli import __version__ as _HERMES_VERSION
+from utils import base_url_host_matches
 
 # Identify ourselves so endpoints fronted by Cloudflare's Browser Integrity
 # Check (error 1010) don't reject the default ``Python-urllib/*`` signature.
@@ -3618,7 +3619,7 @@ def validate_requested_model(
         # so trust the user-supplied model name when a custom endpoint points at
         # api.mistral.ai. Native provider validation still uses the curated
         # Mistral catalog below.
-        if base_url and "api.mistral.ai" in base_url.lower():
+        if base_url_host_matches(base_url, "api.mistral.ai"):
             return {
                 "accepted": True,
                 "persist": True,
