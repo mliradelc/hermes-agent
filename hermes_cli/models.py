@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, NamedTuple, Optional
 
 from hermes_cli import __version__ as _HERMES_VERSION
+from utils import base_url_host_matches
 
 # Identify ourselves so endpoints fronted by Cloudflare's Browser Integrity
 # Check (error 1010) don't reject the default ``Python-urllib/*`` signature.
@@ -265,6 +266,16 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "glm-4.5-flash",
     ],
     "xai": _xai_curated_models(),
+    "mistral": [
+        "mistral-large-latest",
+        "mistral-medium-latest",
+        "mistral-small-latest",
+        "codestral-latest",
+        "pixtral-large-latest",
+        "ministral-8b-latest",
+        "mistral-large-2512",
+        "mistral-small-2603",
+    ],
     "nvidia": [
         # NVIDIA flagship reasoning models
         "nvidia/nemotron-3-super-120b-a12b",
@@ -1007,6 +1018,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("gemini",         "Google AI Studio",         "Google AI Studio (Native Gemini API)"),
     ProviderEntry("google-gemini-cli", "Google Gemini (OAuth)",   "Google Gemini via OAuth + Code Assist (Code Assist OAuth flow)"),
     ProviderEntry("deepseek",       "DeepSeek",                 "DeepSeek (V3, R1, coder, direct API)"),
+    ProviderEntry("mistral",        "Mistral AI",               "Mistral AI (Mistral, Codestral, Pixtral direct API)"),
     ProviderEntry("xai",            "xAI",                      "xAI Grok (Direct API)"),
     ProviderEntry("zai",            "Z.AI / GLM",               "Z.AI / GLM (Zhipu direct API)"),
     ProviderEntry("kimi-coding",    "Kimi / Kimi Coding Plan",  "Kimi Coding Plan (api.kimi.com & Moonshot API)"),
@@ -1206,6 +1218,8 @@ _PROVIDER_ALIASES = {
     "novitaai": "novita",
     "mimo": "xiaomi",
     "xiaomi-mimo": "xiaomi",
+    "mistral-ai": "mistral",
+    "mistralai": "mistral",
     "tencent": "tencent-tokenhub",
     "tokenhub": "tencent-tokenhub",
     "tencent-cloud": "tencent-tokenhub",
@@ -1251,6 +1265,7 @@ _PROVIDER_ALIASES = {
 # hit the Portal; this fallback must stay cheap and network-free.
 _PROVIDER_SILENT_DEFAULT_OVERRIDES: dict[str, str] = {
     "nous": "deepseek/deepseek-v4-flash",
+    "mistral": "mistral-small-latest",
 }
 
 
@@ -3599,6 +3614,19 @@ def validate_requested_model(
         }
 
     if normalized == "custom" or normalized.startswith("custom:"):
+        # Mistral's /models endpoint has historically behaved differently from
+        # OpenAI-compatible catalogs in Hermes installs (auth/probe failures),
+        # so trust the user-supplied model name when a custom endpoint points at
+        # api.mistral.ai. Native provider validation still uses the curated
+        # Mistral catalog below.
+        if base_url_host_matches(base_url, "api.mistral.ai"):
+            return {
+                "accepted": True,
+                "persist": True,
+                "recognized": True,
+                "message": None,
+            }
+
         # Try probing with correct auth for the api_mode.
         if api_mode == "anthropic_messages":
             probe = probe_api_models(api_key, base_url, api_mode=api_mode)

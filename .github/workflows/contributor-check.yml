@@ -48,9 +48,9 @@ jobs:
           # Check each email against AUTHOR_MAP in release.py
           MISSING=""
           while IFS= read -r email; do
-            # Skip teknium and bot emails
+            # Skip teknium, bot, and synthetic local agent emails
             case "$email" in
-              *teknium*|*noreply@github.com*|*dependabot*|*github-actions*|*anthropic.com*|*cursor.com*)
+              *teknium*|*noreply@github.com*|*dependabot*|*github-actions*|*anthropic.com*|*cursor.com*|hermes-agent@local)
                 continue ;;
             esac
 
